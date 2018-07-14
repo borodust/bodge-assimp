@@ -1,0 +1,75 @@
+sudo: required
+language: cpp
+
+cache: ccache
+
+env:
+  global:
+    - NAME: assimp
+    - CMAKE_BUILD_TYPE: Release
+    - DISABLE_EXPORTERS=YES
+    - SHARED_BUILD=ON
+    - secure: "KH9zwWTDXA+iHk+HvrwJ8SiyKoEcog6no+WYhLLDfQKAmb8cmhcWlGjpGE37VYe7tdySWrB+XTcVsSuKH/Q8k+V+XcnKAnLplXlZ07so+YgkIVKJpKtyf71rpjmZ46A2FIRLtLWKL1J9Y81v9gMdVJ1VRJxpvIk92AWqkv8jWwycrmcb+y0ReMfWV1C4Rc5V59a2loMJ0WpJLu3wmbiVtX+qV9ObNekmah55UkGlrfA8UeSiPYJYn7gwkoMjBkYlomQw5DMGx6npNq2nK+nrgXnXn+fLtx16gEEvKNzsendZNHbECe2UBJTEvR7FerUkt3TPVnUXblrg5bFHYVaIe8JK9gdyARcWvfKIgWJ8eWCRwAbSTzlaCkDY8A8B991tn66x8yEPQyuyIg9qyUogNW83BCWmesYZ9Ewt8W8VU9tXno4K1L0iqJR3ZueSdkJMVYx4W8yvdBlPL1ZX6FOAZfHYglKgRyhQzZwqPNQErLQ5KPdPCfAWfRfJDAbjmhx0bCDgWdZyQsf6DMzLxictYUXkNUB/b/CA8MIgm3thlrbi6aReM3a+W6LW8TOMu+01aX8ECckjnvJeMuPiog8SSWlJSAbTOh1g+MTIltdtgDxA77RkeinYEQEb1PnilockPI+9pZqRdF60/tmN2gooSZKo+85BBPnxu3jZVpjdTE4="
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get update -qq && sudo apt-get install -qq cmake cppcheck gcc-multilib g++-multilib python3 freeglut3-dev libxmu-dev libxi-dev ; fi
+  - 'if [ "$TRAVIS_OS_NAME" = "osx" ];  then
+       if brew ls --versions cmake > /dev/null; then
+         echo cmake already installed.;
+       else
+         brew install cmake;
+       fi;
+       brew install python3;
+       brew install homebrew/x11/freeglut;
+    fi'
+  - echo -e "#ifndef A_R_H_INC\n#define A_R_H_INC\n#define GitVersion ${TRAVIS_JOB_ID}\n#define GitBranch \"${TRAVIS_BRANCH}\"\n#endif // A_R_H_INC" > lib/assimp/revision.h
+
+matrix:
+  include:
+  - os: linux
+    compiler: gcc
+    env:
+      - ARCH=i686
+      - CFLAGS=-m32
+      - CXXFLAGS="-m32 -s"
+      - EXTENSION=so
+  - os: linux
+    compiler: gcc
+    env:
+      - ARCH=x86_64
+      - CFLAGS=-m64
+      - CXXFLAGS="-m64 -s"
+      - EXTENSION=so
+#  - os: osx
+#    env:
+#      - ARCH=i686
+#      - CFLAGS=-m32
+#      - CXXFLAGS=-m32
+#      - EXTENSION=dylib
+#  - os: osx
+#    env:
+#      - ARCH=x86_64
+#      - CFLAGS=-m64
+#      - CXXFLAGS=-m64
+#      - EXTENSION=dylib
+
+
+branches:
+  only:
+  - "/^v\\d+(\\.\\d+)+$/"
+
+script:
+  - cd lib/assimp/ && ./.travis.sh
+
+before_deploy:
+  - export TARGET_FILE=$TRAVIS_BUILD_DIR/lib$NAME.$EXTENSION.bodged-$ARCH-$TRAVIS_OS_NAME-$TRAVIS_BRANCH
+  - cp -L $TRAVIS_BUILD_DIR/lib/assimp/lib/libassimp.so $TARGET_FILE
+
+deploy:
+  provider: releases
+  api-key: $GITHUB_TOKEN
+  file: $TARGET_FILE
+  skip_cleanup: true
+  overwrite: true
+  on:
+    tags: true
