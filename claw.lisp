@@ -4,4 +4,4 @@
   :include-definitions ("ai[A-Z]\\w*")
   :rename-symbols (claw:in-pipeline
                    (claw:by-removing-complex-prefix "m[A-Z]\\w*" 1)
-                   (claw:by-removing-prefixes "ai")))
+                   (claw:by-removing-prefixes "ai" "AI_")))
